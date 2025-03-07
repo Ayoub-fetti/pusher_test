@@ -13,7 +13,27 @@
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
+                        {{ __('Home') }}
+                    </x-nav-link>
+                </div>
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    <x-nav-link :href="route('my.notification')" :active="request()->routeIs('my.notification')">
+                        {{ __('Notifications') }}
+                        @if(auth()->user()->unreadNotifications->count() > 0)
+                            <span class="ml-1 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                                {{ auth()->user()->unreadNotifications->count() }}
+                            </span>
+                        @endif
+                    </x-nav-link>
+                </div>
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    <x-nav-link :href="route('conversations.index')" :active="request()->routeIs('conversations.index')">
+                        {{ __('conversations') }}
+                    </x-nav-link>
+                </div>
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                    <x-nav-link :href="route('profile.view')" :active="request()->routeIs('profile.view')">
+                        {{ __('Profil') }}
                     </x-nav-link>
                 </div>
             </div>
@@ -34,8 +54,11 @@
                     </x-slot>
 
                     <x-slot name="content">
-                        <x-dropdown-link :href="route('profile.edit')">
+                        <x-dropdown-link :href="route('profile.view')">
                             {{ __('Profile') }}
+                        </x-dropdown-link>
+                        <x-dropdown-link :href="route('profile.edit')">
+                            {{ __(' Update Profile') }}
                         </x-dropdown-link>
 
                         <!-- Authentication -->

@@ -1,6 +1,19 @@
 <?php
 
 namespace App\Models;
+use App\Models\Posts;
+use App\Models\Skills;
+use App\Models\Comments;
+use App\Models\Likes;
+use App\Models\Shares;
+use App\Models\Job_offers;
+use App\Models\Hashtags;
+use App\Models\Connections;
+use App\Models\Project;
+use App\Models\Certifications;
+use App\Models\Conversation;
+use App\Models\Message;
+
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,35 +22,27 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+   
     protected $fillable = [
         'name',
         'email',
         'password',
+        'profile_picture',
+        'cover',
+        'bio',
+        'website',
+        'github_url',   
+        'linkedin_url',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
+    
     protected function casts(): array
     {
         return [
@@ -45,4 +50,87 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    public function posts()
+    {
+        return $this->hasMany(Posts::class);
+    }
+    public function skills()
+    {
+        return $this->belongsToMany(Skills::class,'skills_user','user_id','skill_id');
+    }
+    public function comments()
+    {
+        return $this->hasMany(Comments::class);
+    }
+    public function likes()
+    {
+        return $this->hasMany(Likes::class);
+    }
+    public function projects()
+    {
+        return $this->hasMany(Project::class);
+    
+    }
+    public function certifications()
+    {
+        return $this->hasMany(Certifications::class);
+    
+    }
+
+    public function shares()
+    {
+        return $this->hasMany(Shares::class);
+    
+    }
+
+    public function job_offers()
+    {
+        return $this->hasMany(Job_offers::class);
+    
+    }
+    public function hashtags()
+    {
+        return $this->hasMany(Hashtags::class);
+    
+    }
+    public function connections()
+    {
+        return $this->hasMany(Connections::class);
+    
+    }
+    public function sentConnections()
+    {
+        return $this->hasMany(Connections::class, 'source_user_id');
+    }
+    public function receivedConnections()
+    {
+        return $this->hasMany(Connections::class, 'target_user_id');
+    }
+
+    public function connectionStatus($targetUserId)
+    {
+    $connection = Connections::where(function ($query) use ($targetUserId) {
+        $query->where('source_user_id', $this->id)
+              ->where('target_user_id', $targetUserId);
+    })->orWhere(function ($query) use ($targetUserId) {
+        $query->where('source_user_id', $targetUserId)
+              ->where('target_user_id', $this->id);
+    })->first();
+
+    return $connection ? $connection->status : null;
+    }
+
+    public function conversations()
+    {
+        return $this->belongsToMany(Conversation::class, 'conversation_user')
+            ->withPivot('last_read_at')
+            ->withTimestamps()
+            ->orderBy('updated_at', 'desc');
+    }
+    
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
+   
 }

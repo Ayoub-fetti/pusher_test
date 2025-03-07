@@ -3,43 +3,100 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Skills;
+use App\Models\User;
+use App\Models\Project;
+use App\Models\Connections;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
+    public function view()
+    {
+        $user = Auth::user();
+        $sent_connections = $user->sentConnections->get('target_user_id');
+        $received_connections = $user->receivedConnections->get('source_user_id');
+        $users = User::where('id', '!=', Auth::id())->get()->sortBy('created_at');
+        $projects = Auth::user()->projects;
+        $certifications = Auth::user()->certifications;
+        $posts = Auth::user()->posts;
+        $job_offers = Auth::user()->job_offers;
+        return view('profile.view', compact('user','users','sent_connections','received_connections','projects','certifications','posts','job_offers'));
+
+    }
+    public function notification()
+    {
+        $user = Auth::user();
+        $receivedConnections = Connections::where('target_user_id', Auth::id())
+        ->where('status', 'pending')
+       ->get();
+        $notifications = $user->notifications;
+        return view('notification',compact('receivedConnections','notifications','user'));
+    }
+
     public function edit(Request $request): View
     {
-        return view('profile.edit', [
+        $skills = Skills::all();
+        return view('profile.edit',compact('skills'), [
             'user' => $request->user(),
         ]);
     }
 
-    /**
-     * Update the user's profile information.
-     */
+ 
+   
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255',
+            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'cover' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'skills' => 'array',
+            'skills.*' => 'exists:skills,id',
+        ]);
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $user = Auth::user();
+        if (!($user instanceof \Illuminate\Database\Eloquent\Model)) {
+            throw new \Exception('User is not an instance of Eloquent Model');
         }
 
-        $request->user()->save();
+        if ($request->hasFile('profile_picture')) {
+            $profilePhotoPath = $request->file('profile_picture')->store('profile_pictures', 'public');
+            $user->profile_picture = $profilePhotoPath;
+        }
+        if ($request->hasFile('cover')) {
+            $coverPhotoPath = $request->file('cover')->store('cover_pictures', 'public');
+            $user->cover = $coverPhotoPath;
+        }
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        $user->fill($request->validated());
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        $user->name = $request->input('name');
+        $user->email = $request->input('email');
+        $user->bio = $request->input('bio');
+        $user->website = $request->input('website');
+        $user->github_url = $request->input('github_url');
+        $user->linkedin_url = $request->input('linkedin_url');
+
+        $user->save();
+
+        // Sync the selected skills
+        $user->skills()->attach($request->input('skills', []));
+        $skills = Skills::all();
+
+        return Redirect::route('profile.edit', compact('skills', 'user'))->with('status', 'profile-updated');
     }
 
-    /**
-     * Delete the user's account.
-     */
+ 
     public function destroy(Request $request): RedirectResponse
     {
         $request->validateWithBag('userDeletion', [
@@ -57,4 +114,5 @@ class ProfileController extends Controller
 
         return Redirect::to('/');
     }
+
 }

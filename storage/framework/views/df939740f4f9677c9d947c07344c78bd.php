@@ -1,0 +1,2 @@
+
+<img src="<?php echo e(asset('storage/images/logo_linkdev.png')); ?>" <?php echo e($attributes); ?> alt="Application Logo"><?php /**PATH C:\laragon\www\pusher_test\resources\views/components/application-logo.blade.php ENDPATH**/ ?>
